@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>受付・料金自動計算システム</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; padding: 15px; max-width: 800px; margin: 0 auto; padding-bottom: 50px; }
+    h1 { font-size: 20px; color: #fbbf24; margin-bottom: 15px; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+    .section { background-color: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+    .section-title { font-size: 15px; font-weight: bold; color: #e2e8f0; margin-bottom: 10px; }
+    .btn-group { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn { flex: 1; min-width: 100px; padding: 12px 8px; background-color: #334155; color: #cbd5e1; border: 2px solid #475569; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; text-align: center; -webkit-tap-highlight-color: transparent; }
+    .btn:disabled { opacity: 0.25; cursor: not-allowed; }
+    .btn.active { background-color: #fbbf24 !important; color: #0f172a !important; border-color: #f59e0b !important; }
+    .sub-text { display: block; font-size: 11px; font-weight: normal; margin-top: 2px; }
+    
+    .text-blue { color: #60a5fa !important; }
+    .text-yellow { color: #fbbf24 !important; }
+    .text-green { color: #34d399 !important; }
+    .btn.active .text-blue, .btn.active .text-yellow, .btn.active .text-green { color: #0f172a !important; }
+    
+    .cast-cat-title { width: 100%; font-size: 12px; font-weight: bold; color: #fbbf24; margin-top: 8px; margin-bottom: 2px; border-left: 3px solid #fbbf24; padding-left: 6px; }
+
+    .group-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    .group-members { font-size: 12px; color: #94a3b8; margin-bottom: 8px; line-height: 1.5; word-break: break-all; }
+    .group-members strong { color: #fbbf24; }
+
+    .form-control { width: 100%; padding: 10px; background-color: #334155; color: #f8fafc; border: 2px solid #475569; border-radius: 8px; font-size: 14px; outline: none; }
+    .form-control:focus { border-color: #fbbf24; }
+
+    .checkbox-label { display: flex; align-items: center; background: #334155; padding: 10px 8px; border-radius: 8px; border: 2px solid #475569; cursor: pointer; flex: 1; min-width: 60px; font-size: 13px; font-weight: bold; justify-content: center; }
+    .checkbox-label input { width: 16px; height: 16px; margin-right: 4px; }
+    
+    .cust-info-container { display: flex; flex-direction: column; gap: 10px; }
+    .cust-row-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    .cust-name-wrap { flex: 2; min-width: 180px; }
+    .cust-attr-wrap { flex: 3; display: flex; gap: 6px; min-width: 240px; flex-wrap: wrap; }
+    .cust-visit-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+    .first-visit-inline { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 220px; }
+
+    .summary-box { background-color: #1e293b; border: 2px solid #fbbf24; border-radius: 10px; padding: 18px; margin-top: 20px; }
+    .summary-title { font-size: 16px; color: #fbbf24; font-weight: bold; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-bottom: 12px; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; }
+    .summary-row.discount { color: #34d399; }
+    .total-row { border-top: 2px solid #fbbf24; padding-top: 12px; margin-top: 12px; display: flex; justify-content: space-between; align-items: center; }
+    .total-price { font-size: 28px; font-weight: bold; color: #fbbf24; }
+  </style>
+</head>
+<body>
+
+  <h1>受付・料金自動計算システム</h1>
+
+  <!-- 1. 指名区分 -->
+  <div class="section">
+    <div class="section-title">1. 指名区分</div>
+    <div class="btn-group">
+      <button type="button" id="btn-nom-yes" class="btn" onclick="clickNomination(true)">本指名/写真指名あり<span class="sub-text">キャスト選択へ</span></button>
+      <button type="button" id="btn-nom-no" class="btn active" onclick="clickNomination(false)">フリー<span class="sub-text">指名料0円</span></button>
+    </div>
+  </div>
+
+  <!-- 1-1. お客様情報 -->
+  <div class="section" id="customer-info-section">
+    <div class="section-title">1-1. お客様情報</div>
+    <div class="cust-info-container">
+      <div class="cust-row-top">
+        <div class="cust-name-wrap" id="cust-name-box" style="display: none;">
+          <input type="text" id="cust-name" class="form-control" placeholder="お客様のお名前" oninput="calculate()">
+        </div>
+        <!-- 属性（純、N、P、Fの順で排他制御） -->
+        <div class="cust-attr-wrap">
+          <label class="checkbox-label"><input type="checkbox" id="chk-attr-jun" value="純" onchange="selectAttribute('chk-attr-jun')"> 純</label>
+          <label class="checkbox-label"><input type="checkbox" id="chk-attr-n" value="Ｎ" onchange="selectAttribute('chk-attr-n')"> Ｎ</label>
+          <label class="checkbox-label"><input type="checkbox" id="chk-attr-p" value="P" onchange="selectAttribute('chk-attr-p')"> P</label>
+          <label class="checkbox-label"><input type="checkbox" id="chk-attr-f" value="F" onchange="selectAttribute('chk-attr-f')"> F</label>
+        </div>
+      </div>
+      
+      <!-- 来店区分（初来・再来の排他制御） -->
+      <div class="cust-visit-wrap">
+        <div class="first-visit-inline">
+          <label class="checkbox-label" style="flex: 0 0 auto; min-width: auto; padding: 10px 14px;">
+            <input type="checkbox" id="chk-visit-first" value="初来" onchange="toggleVisit('first')"> 初来
+          </label>
+          <div id="first-visit-detail-wrap" style="display: none; flex: 1;">
+            <select id="sel-first-detail" class="form-control" onchange="calculate()">
+              <option value="口コミ新規">口コミ新規</option>
+              <option value="ヘブン新規">ヘブン新規</option>
+              <option value="G店新規">G店新規</option>
+              <option value="飛び込み新規">飛び込み新規</option>
+              <option value="マンステ新規">マンステ新規</option>
+              <option value="ぴゅあらば新規">ぴゅあらば新規</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="flex: 0 0 auto;">
+          <label class="checkbox-label" style="padding: 10px 14px;">
+            <input type="checkbox" id="chk-visit-repeat" value="再来" onchange="toggleVisit('repeat')"> 再来
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 1-2. 指名キャスト選択 -->
+  <div class="section" id="cast-selection-section" style="display: none;">
+    <div class="section-title">1-2. 指名キャスト選択</div>
+    <div class="btn-group" id="cast-btn-container"></div>
+  </div>
+
+  <!-- 2. キャストランク選択 -->
+  <div class="section">
+    <div class="section-title">2. キャストランク <span style="font-size:11px; font-weight:normal; color:#94a3b8;">（指名キャスト選択時は自動固定）</span></div>
+    <div class="btn-group">
+      <button type="button" id="btn-rank-royal" class="btn active" onclick="clickRank('royal')">ロイヤルレディ</button>
+      <button type="button" id="btn-rank-premier" class="btn" onclick="clickRank('premier')">プレミアレディ</button>
+      <button type="button" id="btn-rank-vip" class="btn" onclick="clickRank('vip')">VIPレディ</button>
+    </div>
+  </div>
+
+  <!-- 3. 先行予約タイミング -->
+  <div class="section">
+    <div class="section-title">3. 先行予約タイミング</div>
+
+    <!-- 予約タイプ（大区分） -->
+    <div style="margin-bottom: 12px;">
+      <div class="btn-group">
+        <button type="button" id="btn-advtype-none" class="btn active" onclick="clickAdvanceType('none')">
+          当日飛び込み <span class="sub-text">+0円</span>
+        </button>
+        <button type="button" id="btn-advtype-free" class="btn" onclick="clickAdvanceType('free')">
+          フリー予約 <span class="sub-text">+1,000円</span>
+        </button>
+        <button type="button" id="btn-advtype-early" class="btn" onclick="clickAdvanceType('early')">
+          先行予約 <span class="sub-text">グループ別調整</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 先行予約詳細エリア（先行予約選択時のみ表示） -->
+    <div id="advance-detail-container" style="display: none;">
+      <!-- グループ1 -->
+      <div class="group-box">
+        <div class="group-members"><strong>【グループ1 対象メンバー】</strong><br>あやみ、さな、まい</div>
+        <div class="btn-group">
+          <button type="button" id="btn-adv-g1-early" class="btn adv-sub-btn" onclick="clickAdvanceSub('g1-early', 5000)">
+            <span class="text-blue">14日前〜4日前</span>
+            <span class="sub-text text-blue">+5,000円</span>
+          </button>
+          <button type="button" id="btn-adv-g1-mid" class="btn adv-sub-btn" onclick="clickAdvanceSub('g1-mid', 4000)">
+            <span class="text-yellow">3日前〜1日前</span>
+            <span class="sub-text text-yellow">+4,000円</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- グループ2 -->
+      <div class="group-box">
+        <div class="group-members"><strong>【グループ2 対象メンバー】</strong><br>あいか、あおい、あこ、あすな、あまね、いろは、ういか、えみり、きほ、くみ、こころ、さくら、しおり、そら、なぎさ、ひめか、まこと、まち、まどか、まり、めぐみ、ゆい、ゆう、ゆき、ゆり、ゆりあ、らん、りえ、りく、りこ、りょうか、るあ、るか、れみ</div>
+        <div class="btn-group">
+          <button type="button" id="btn-adv-g2-early" class="btn adv-sub-btn" onclick="clickAdvanceSub('g2-early', 3000)">
+            <span class="text-blue">14日前〜4日前</span>
+            <span class="sub-text text-blue">+3,000円</span>
+          </button>
+          <button type="button" id="btn-adv-g2-mid" class="btn adv-sub-btn" onclick="clickAdvanceSub('g2-mid', 2000)">
+            <span class="text-yellow">3日前〜1日前</span>
+            <span class="sub-text text-yellow">+2,000円</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- その他 -->
+      <div class="group-box" style="margin-bottom:0;">
+        <div class="group-members"><strong>【その他】</strong></div>
+        <div class="btn-group">
+          <button type="button" id="btn-adv-other" class="btn adv-sub-btn" onclick="clickAdvanceSub('other', -2000)">
+            <span class="text-green">14日前〜1日前</span>
+            <span class="sub-text text-green">-2,000円</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. コース時間選択 -->
+  <div class="section">
+    <div class="section-title">4. コース時間</div>
+    <div class="btn-group">
+      <button type="button" id="btn-c-50" class="btn active" onclick="clickCourse(50)">50分コース</button>
+      <button type="button" id="btn-c-75" class="btn" onclick="clickCourse(75)">75分コース</button>
+      <button type="button" id="btn-c-100" class="btn" onclick="clickCourse(100)">100分コース</button>
+      <button type="button" id="btn-c-150" class="btn" onclick="clickCourse(150)">150分コース</button>
+    </div>
+  </div>
+
+  <!-- 5. 各種割引 -->
+  <div class="section">
+    <div class="section-title">5. 特典・割引適用</div>
+    <div class="btn-group" style="flex-direction: column;">
+      <div style="display: flex; gap: 10px; align-items: center;">
+        <label style="font-size: 13px; font-weight: bold; width: 110px;">サイト提示割引:</label>
+        <select id="sel-site-disc" class="form-control" style="flex: 1;" onchange="calculate()">
+          <option value="none">なし (0円)</option>
+          <option value="ヘブン">ヘブン (-1,000円)</option>
+          <option value="フーコレ">フーコレ (-1,000円)</option>
+          <option value="オフィシャル">オフィシャル (-1,000円)</option>
+          <option value="風俗じゃぱん">風俗じゃぱん (-1,000円)</option>
+        </select>
+      </div>
+      <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+        <label class="checkbox-label" style="justify-content: flex-start; padding-left: 15px;">
+          <input type="checkbox" id="chk-review" onchange="calculate()"> 口口コミ割引 (-1,000円)
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- お会計明細 -->
+  <div class="summary-box">
+    <div class="summary-title">お会計明細</div>
+    <div class="summary-row"><span>指名キャスト:</span><span id="sum-cast" style="font-weight:bold;">なし (フリー)</span></div>
+    <div class="summary-row"><span>コース:</span><span id="sum-course" style="font-weight:bold;">50分 (ロイヤルレディ)</span></div>
+    <div class="summary-row"><span>属性 (純/N/P/F):</span><span id="sum-attr" style="font-weight:bold;">F</span></div>
+    <div class="summary-row" id="sum-row-cust" style="display: none;"><span>お客様名:</span><span id="sum-cust" style="font-weight:bold;">-</span></div>
+    <div class="summary-row"><span>来店区分:</span><span id="sum-visit" style="font-weight:bold;">なし</span></div>
+    <div class="summary-row" id="sum-row-off" style="display: none; color: #34d399;"><span>割引適用状態:</span><span id="sum-off-text" style="font-weight:bold;">-</span></div>
+    
+    <hr style="border: 0; border-top: 1px solid #334155; margin: 10px 0;">
+    
+    <div class="summary-row"><span>基本料金:</span><span id="sum-base" style="font-weight:bold;">17,000円</span></div>
+    <div class="summary-row"><span>指名料:</span><span id="sum-nom" style="font-weight:bold;">0円</span></div>
+    <div class="summary-row"><span>先行予約調整料金:</span><span id="sum-adv-fee" style="font-weight:bold;">0円</span></div>
+    <div class="summary-row discount"><span>サイト提示割引:</span><span id="sum-site-disc" style="font-weight:bold;">-0円</span></div>
+    <div class="summary-row discount"><span>口コミ割引:</span><span id="sum-review-disc" style="font-weight:bold;">-0円</span></div>
+    <div class="total-row">
+      <span>合計お会計金額:</span>
+      <div class="total-price"><span id="sum-total">17,000</span> 円</div>
+    </div>
+  </div>
+
+  <script>
+    var prices = {
+      royal:   { 50: 17000, 75: 25000, 100: 36000, 150: 55000 },
+      premier: { 50: 18000, 75: 26000, 100: 38000, 150: 58000 },
+      vip:     { 50: 23000, 75: 0,     100: 48000, 150: 73000 }
+    };
+
+    var castList = [
+      // VIPレディ
+      { name: 'さな', rank: 'vip', fee: 6000, cat: 'VIPレディ', group: 1 },
+      { name: 'あいか', rank: 'vip', fee: 4000, cat: 'VIPレディ', group: 2 },
+      { name: 'えみり', rank: 'vip', fee: 4000, cat: 'VIPレディ', group: 2 },
+
+      // プレミアレディ
+      { name: 'ゆう', rank: 'premier', fee: 6000, cat: 'プレミアレディ', group: 2 },
+      { name: 'ういか', rank: 'premier', fee: 5000, cat: 'プレミアレディ', group: 2 },
+      { name: 'なぎさ', rank: 'premier', fee: 5000, cat: 'プレミアレディ', group: 2 },
+      { name: 'あまね', rank: 'premier', fee: 4000, cat: 'プレミアレディ', group: 2 },
+      { name: 'まち', rank: 'premier', fee: 4000, cat: 'プレミアレディ', group: 2 },
+
+      // ロイヤルレディ
+      { name: 'くみ', rank: 'royal', fee: 5000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'あおい', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'あやみ', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 1 },
+      { name: 'さくら', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'ひめか', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'ゆりあ', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'りく', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'りこ', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+
+      // その他
+      { name: 'その他', rank: '', fee: 3000, cat: 'その他', group: 0 }
+    ];
+
+    var isNomination = false;
+    var selectedCastIndex = -1;
+    var currentRank = 'royal';
+    
+    var advanceType = 'none';
+    var advanceKey = '';
+    var advanceFee = 0;
+    
+    var selectedCourse = 50;
+
+    function initCastButtons() {
+      var container = document.getElementById('cast-btn-container');
+      container.innerHTML = '';
+      
+      var categories = ['VIPレディ', 'プレミアレディ', 'ロイヤルレディ', 'その他'];
+      
+      for (var c = 0; c < categories.length; c++) {
+        var catName = categories[c];
+        var catTitle = document.createElement('div');
+        catTitle.className = 'cast-cat-title';
+        catTitle.innerText = catName;
+        container.appendChild(catTitle);
+
+        for (var i = 0; i < castList.length; i++) {
+          var item = castList[i];
+          if (item.cat === catName) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn cast-btn';
+            btn.innerHTML = item.name + '<span class="sub-text">+' + item.fee.toLocaleString() + '円</span>';
+            btn.setAttribute('onclick', 'clickCast(' + i + ')');
+            container.appendChild(btn);
+          }
+        }
+      }
+    }
+
+    // 属性の排他選択処理
+    function selectAttribute(selectedId) {
+      var attrIds = ['chk-attr-jun', 'chk-attr-n', 'chk-attr-p', 'chk-attr-f'];
+      var target = document.getElementById(selectedId);
+      
+      if (target.checked) {
+        for (var i = 0; i < attrIds.length; i++) {
+          if (attrIds[i] !== selectedId) {
+            document.getElementById(attrIds[i]).checked = false;
+          }
+        }
+      }
+      calculate();
+    }
+
+    // 来店区分の排他選択処理
+    function toggleVisit(type) {
+      var chkFirst = document.getElementById('chk-visit-first');
+      var chkRepeat = document.getElementById('chk-visit-repeat');
+      var detailWrap = document.getElementById('first-visit-detail-wrap');
+
+      if (type === 'first') {
+        if (chkFirst.checked) {
+          chkRepeat.checked = false;
+          detailWrap.style.display = 'block';
+        } else {
+          detailWrap.style.display = 'none';
+        }
+      } else if (type === 'repeat') {
+        if (chkRepeat.checked) {
+          chkFirst.checked = false;
+          detailWrap.style.display = 'none';
+        }
+      }
+      calculate();
+    }
+
+    function clickNomination(val) {
+      isNomination = val;
+      document.getElementById('btn-nom-yes').className = val ? 'btn active' : 'btn';
+      document.getElementById('btn-nom-no').className = val ? 'btn' : 'btn active';
+      
+      document.getElementById('cust-name-box').style.display = val ? 'block' : 'none';
+      document.getElementById('cast-selection-section').style.display = val ? 'block' : 'none';
+      
+      var chkF = document.getElementById('chk-attr-f');
+      if (!val) {
+        selectAttribute('chk-attr-f');
+        chkF.checked = true;
+      } else {
+        chkF.checked = false;
+      }
+
+      var btnFree = document.getElementById('btn-advtype-free');
+      var btnEarly = document.getElementById('btn-advtype-early');
+
+      if (val) {
+        btnFree.disabled = true;
+        btnEarly.disabled = false;
+        if (advanceType === 'free') {
+          clickAdvanceType('none');
+        }
+      } else {
+        btnFree.disabled = false;
+        btnEarly.disabled = true;
+        if (advanceType === 'early') {
+          clickAdvanceType('none');
+        }
+      }
+
+      if (val && selectedCastIndex === -1) {
+        clickCast(0);
+      } else {
+        if (!val) {
+          updateRankState(null);
+          updateAdvanceGroupState(null);
+        } else {
+          clickCast(selectedCastIndex);
+        }
+        calculate();
+      }
+    }
+
+    function clickCast(idx) {
+      selectedCastIndex = idx;
+      var btns = document.querySelectorAll('.cast-btn');
+      for (var i = 0; i < btns.length; i++) {
+        btns[i].className = (i === idx) ? 'btn cast-btn active' : 'btn cast-btn';
+      }
+      var c = castList[idx];
+      updateRankState(c ? c.rank : null);
+      updateAdvanceGroupState(c ? c.group : null);
+      calculate();
+    }
+
+    function updateRankState(targetRank) {
+      var btnRoyal = document.getElementById('btn-rank-royal');
+      var btnPremier = document.getElementById('btn-rank-premier');
+      var btnVip = document.getElementById('btn-rank-vip');
+
+      if (targetRank) {
+        currentRank = targetRank;
+        btnRoyal.disabled = (targetRank !== 'royal');
+        btnPremier.disabled = (targetRank !== 'premier');
+        btnVip.disabled = (targetRank !== 'vip');
+      } else {
+        btnRoyal.disabled = false;
+        btnPremier.disabled = false;
+        btnVip.disabled = false;
+      }
+
+      btnRoyal.className = (currentRank === 'royal') ? 'btn active' : 'btn';
+      btnPremier.className = (currentRank === 'premier') ? 'btn active' : 'btn';
+      btnVip.className = (currentRank === 'vip') ? 'btn active' : 'btn';
+
+      var btn75 = document.getElementById('btn-c-75');
+      if (currentRank === 'vip') {
+        btn75.disabled = true;
+        if (selectedCourse === 75) clickCourse(50);
+      } else {
+        btn75.disabled = false;
+      }
+    }
+
+    function updateAdvanceGroupState(groupNum) {
+      var btnG1Early = document.getElementById('btn-adv-g1-early');
+      var btnG1Mid   = document.getElementById('btn-adv-g1-mid');
+      var btnG2Early = document.getElementById('btn-adv-g2-early');
+      var btnG2Mid   = document.getElementById('btn-adv-g2-mid');
+      var btnOther   = document.getElementById('btn-adv-other');
+
+      if (groupNum === 1) {
+        btnG1Early.disabled = false;
+        btnG1Mid.disabled   = false;
+        btnG2Early.disabled = true;
+        btnG2Mid.disabled   = true;
+        btnOther.disabled   = true;
+        if (advanceType === 'early' && advanceKey.indexOf('g1') === -1) {
+          clickAdvanceSub('g1-early', 5000);
+        }
+      } else if (groupNum === 2) {
+        btnG1Early.disabled = true;
+        btnG1Mid.disabled   = true;
+        btnG2Early.disabled = false;
+        btnG2Mid.disabled   = false;
+        btnOther.disabled   = true;
+        if (advanceType === 'early' && advanceKey.indexOf('g2') === -1) {
+          clickAdvanceSub('g2-early', 3000);
+        }
+      } else {
+        btnG1Early.disabled = false;
+        btnG1Mid.disabled   = false;
+        btnG2Early.disabled = false;
+        btnG2Mid.disabled   = false;
+        btnOther.disabled   = false;
+        if (advanceType === 'early' && !advanceKey) {
+          clickAdvanceSub('g1-early', 5000);
+        }
+      }
+    }
+
+    function clickRank(r) {
+      if (!isNomination || (selectedCastIndex >= 0 && !castList[selectedCastIndex].rank)) {
+        currentRank = r;
+        updateRankState(null);
+        calculate();
+      }
+    }
+
+    function clickAdvanceType(type) {
+      advanceType = type;
+      document.getElementById('btn-advtype-none').className = (type === 'none') ? 'btn active' : 'btn';
+      document.getElementById('btn-advtype-free').className = (type === 'free') ? 'btn active' : 'btn';
+      document.getElementById('btn-advtype-early').className = (type === 'early') ? 'btn active' : 'btn';
+
+      var detailContainer = document.getElementById('advance-detail-container');
+      
+      if (type === 'none') {
+        detailContainer.style.display = 'none';
+        advanceFee = 0;
+      } else if (type === 'free') {
+        detailContainer.style.display = 'none';
+        advanceFee = 1000;
+      } else if (type === 'early') {
+        detailContainer.style.display = 'block';
+        if (!advanceKey) {
+          if (isNomination && selectedCastIndex >= 0) {
+            updateAdvanceGroupState(castList[selectedCastIndex].group);
+          } else {
+            updateAdvanceGroupState(null);
+          }
+        } else {
+          clickAdvanceSub(advanceKey, advanceFee);
+        }
+      }
+      calculate();
+    }
+
+    function clickAdvanceSub(key, fee) {
+      advanceKey = key;
+      if (advanceType === 'early') {
+        advanceFee = fee;
+      }
+
+      var subKeys = ['g1-early', 'g1-mid', 'g2-early', 'g2-mid', 'other'];
+      for (var i = 0; i < subKeys.length; i++) {
+        var btn = document.getElementById('btn-adv-' + subKeys[i]);
+        if (btn) {
+          if (subKeys[i] === key) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        }
+      }
+      calculate();
+    }
+
+    function clickCourse(c) {
+      if (currentRank === 'vip' && c === 75) return;
+      selectedCourse = c;
+      var cArr = [50, 75, 100, 150];
+      for (var i = 0; i < cArr.length; i++) {
+        var btn = document.getElementById('btn-c-' + cArr[i]);
+        if (btn) btn.className = (cArr[i] === c) ? 'btn active' : 'btn';
+      }
+      calculate();
+    }
+
+    function calculate() {
+      var base = prices[currentRank][selectedCourse] || 0;
+      var nomFee = 0;
+      var castName = 'なし (フリー)';
+
+      if (isNomination && selectedCastIndex >= 0) {
+        var c = castList[selectedCastIndex];
+        nomFee = c.fee;
+        castName = c.name + (c.rank ? (' (' + (c.rank === 'royal' ? 'ロイヤル' : c.rank === 'premier' ? 'プレミア' : 'VIP') + ')') : '');
+      }
+
+      // 属性チェック状況
+      var checkedAttrs = [];
+      if (document.getElementById('chk-attr-jun').checked) checkedAttrs.push('純');
+      if (document.getElementById('chk-attr-n').checked) checkedAttrs.push('Ｎ');
+      if (document.getElementById('chk-attr-p').checked) checkedAttrs.push('P');
+      if (document.getElementById('chk-attr-f').checked) checkedAttrs.push('F');
+      var attrStr = checkedAttrs.length > 0 ? checkedAttrs.join('・') : 'なし';
+
+      // お客様名
+      var custRow = document.getElementById('sum-row-cust');
+      if (isNomination) {
+        custRow.style.display = 'flex';
+        var nameVal = document.getElementById('cust-name').value.trim() || '未入力';
+        document.getElementById('sum-cust').innerText = nameVal;
+      } else {
+        custRow.style.display = 'none';
+      }
+
+      // 来店区分
+      var visitStr = 'なし';
+      var chkFirst = document.getElementById('chk-visit-first');
+      var chkRepeat = document.getElementById('chk-visit-repeat');
+      if (chkFirst.checked) {
+        var firstDetail = document.getElementById('sel-first-detail').value;
+        visitStr = '初来 (' + firstDetail + ')';
+      } else if (chkRepeat.checked) {
+        visitStr = '再来';
+      }
+
+      // 先行予約調整金
+      var currentAdvFee = (advanceType === 'none') ? 0 : ((advanceType === 'free') ? 1000 : advanceFee);
+
+      // 割引処理
+      var siteVal = document.getElementById('sel-site-disc').value;
+      var isSiteDiscActive = (siteVal !== 'none');
+      var siteDisc = isSiteDiscActive ? 1000 : 0;
+      var siteDiscLabel = isSiteDiscActive ? 'サイト提示割引 (' + siteVal + '):' : 'サイト提示割引:';
+
+      var isReviewActive = document.getElementById('chk-review').checked;
+      var rDisc = isReviewActive ? 1000 : 0;
+
+      // オフ表記（来店区分の下）の判定
+      var offRow = document.getElementById('sum-row-off');
+      var offTextElem = document.getElementById('sum-off-text');
+      
+      if (isSiteDiscActive && isReviewActive) {
+        offRow.style.display = 'flex';
+        offTextElem.innerText = '2オフ';
+      } else if (isReviewActive) {
+        offRow.style.display = 'flex';
+        offTextElem.innerText = '2オフ';
+      } else if (isSiteDiscActive) {
+        offRow.style.display = 'flex';
+        offTextElem.innerText = '1オフ';
+      } else {
+        offRow.style.display = 'none';
+      }
+
+      var total = Math.max(0, base + nomFee + currentAdvFee - siteDisc - rDisc);
+
+      // 明細表示更新
+      document.getElementById('sum-cast').innerHTML = castName;
+      document.getElementById('sum-course').innerHTML = selectedCourse + '分 (' + (currentRank === 'royal' ? 'ロイヤルレディ' : currentRank === 'premier' ? 'プレミアレディ' : 'VIPレディ') + ')';
+      document.getElementById('sum-attr').innerHTML = attrStr;
+      document.getElementById('sum-visit').innerHTML = visitStr;
+
+      document.getElementById('sum-base').innerHTML = base.toLocaleString() + '円';
+      document.getElementById('sum-nom').innerHTML = nomFee.toLocaleString() + '円';
+
+      var advElem = document.getElementById('sum-adv-fee');
+      if (currentAdvFee > 0) {
+        advElem.innerHTML = '+' + currentAdvFee.toLocaleString() + '円';
+        advElem.style.color = '#fbbf24';
+      } else if (currentAdvFee < 0) {
+        advElem.innerHTML = currentAdvFee.toLocaleString() + '円';
+        advElem.style.color = '#34d399';
+      } else {
+        advElem.innerHTML = '0円';
+        advElem.style.color = '#f8fafc';
+      }
+
+      var siteLabelElem = document.querySelector('#sum-site-disc').previousElementSibling;
+      if (siteLabelElem) siteLabelElem.innerText = siteDiscLabel;
+      document.getElementById('sum-site-disc').innerHTML = '-' + siteDisc.toLocaleString() + '円';
+
+      document.getElementById('sum-review-disc').innerHTML = '-' + rDisc.toLocaleString() + '円';
+      document.getElementById('sum-total').innerHTML = total.toLocaleString();
+    }
+
+    initCastButtons();
+    clickNomination(false);
+    clickAdvanceType('none');
+    calculate();
+  </script>
+</body>
+</html>
