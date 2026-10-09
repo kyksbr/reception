@@ -21,7 +21,10 @@
     .text-green { color: #34d399 !important; }
     .btn.active .text-blue, .btn.active .text-yellow, .btn.active .text-green { color: #0f172a !important; }
     
-    .cast-cat-title { width: 100%; font-size: 12px; font-weight: bold; color: #fbbf24; margin-top: 8px; margin-bottom: 2px; border-left: 3px solid #fbbf24; padding-left: 6px; }
+    /* キャストカテゴリ切替タブ */
+    .cast-tab-group { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+    .tab-btn { flex: 1; padding: 8px 4px; background: #0f172a; color: #94a3b8; border: 1px solid #334155; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; text-align: center; }
+    .tab-btn.active { background: #fbbf24; color: #0f172a; border-color: #fbbf24; }
 
     .group-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
     .group-members { font-size: 12px; color: #94a3b8; margin-bottom: 8px; line-height: 1.5; word-break: break-all; }
@@ -34,8 +37,8 @@
     .checkbox-label input { width: 16px; height: 16px; margin-right: 4px; }
     
     .cust-info-container { display: flex; flex-direction: column; gap: 10px; }
-    .cust-row-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-    .cust-time-wrap { flex: 1; min-width: 120px; }
+    .cust-row-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
+    .cust-time-wrap { flex: 1; min-width: 140px; }
     .cust-name-wrap { flex: 2; min-width: 180px; }
     .cust-attr-wrap { flex: 3; display: flex; gap: 6px; min-width: 240px; flex-wrap: wrap; }
     .cust-visit-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
@@ -57,12 +60,9 @@
     .btn-success:hover { background-color: #059669; }
     
     /* 予約リスト アコーディオン スタイル */
-    .res-toggle-header { font-size: 13px; font-weight: bold; color: #e2e8f0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; padding: 8px 10px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; }
+    .res-toggle-header { font-size: 13px; font-weight: bold; color: #e2e8f0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; padding: 10px 12px; background: #0f172a; border: 1px solid #334155; border-radius: 6px; }
     .res-toggle-header:hover { color: #fbbf24; border-color: #fbbf24; }
-    
-    /* 初期状態は display: none で完全非表示 */
     .reservation-list { display: none; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 300px; overflow-y: auto; }
-    
     .reservation-card { background: #0f172a; border: 1px solid #475569; border-radius: 8px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
     .reservation-card:hover { border-color: #fbbf24; }
     .reservation-card.selected { border: 2px solid #fbbf24; background: #1e293b; }
@@ -71,6 +71,11 @@
     .res-detail { color: #94a3b8; font-size: 11px; margin-top: 2px; }
     .res-badge { background: #334155; color: #38bdf8; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; }
     .badge-loaded { background: #fbbf24 !important; color: #0f172a !important; }
+
+    /* 時間選択かんたんボタン */
+    .quick-time-group { display: flex; gap: 4px; margin-top: 6px; flex-wrap: wrap; }
+    .quick-time-btn { background: #0f172a; border: 1px solid #475569; color: #cbd5e1; font-size: 11px; padding: 4px 7px; border-radius: 4px; cursor: pointer; }
+    .quick-time-btn:hover { border-color: #fbbf24; color: #fbbf24; }
   </style>
 </head>
 <body>
@@ -86,72 +91,29 @@
     </div>
   </div>
 
-  <!-- 1-1. お客様情報 ＆ 予約機能 -->
-  <div class="section" id="customer-info-section">
-    <div class="section-title">
-      <span>1-1. お客様情報</span>
-      <button type="button" class="btn-secondary" onclick="resetForm()">フォームをクリア（新規作成）</button>
+  <!-- 予約確認・一覧エリア（指名区分のすぐ下） -->
+  <div class="section" style="padding: 10px;">
+    <div class="res-toggle-header" onclick="toggleReservationList()">
+      <span><span id="res-arrow">▼</span> 予約リスト（タップで開閉）</span>
+      <span id="res-count" style="font-size: 12px; color: #fbbf24;">0件</span>
     </div>
-    <div class="cust-info-container">
-      <div class="cust-row-top">
-        <!-- 時間入力欄（任意） -->
-        <div class="cust-time-wrap">
-          <input type="time" id="cust-time" class="form-control" onchange="calculate()" placeholder="来店時間">
-        </div>
-        <!-- 名前入力欄 -->
-        <div class="cust-name-wrap" id="cust-name-box" style="display: none;">
-          <input type="text" id="cust-name" class="form-control" placeholder="お客様のお名前" oninput="calculate()">
-        </div>
-        <!-- 属性 -->
-        <div class="cust-attr-wrap">
-          <label class="checkbox-label"><input type="checkbox" id="chk-attr-jun" value="純" onchange="selectAttribute('chk-attr-jun')"> 純</label>
-          <label class="checkbox-label"><input type="checkbox" id="chk-attr-n" value="Ｎ" onchange="selectAttribute('chk-attr-n')"> Ｎ</label>
-          <label class="checkbox-label"><input type="checkbox" id="chk-attr-p" value="P" onchange="selectAttribute('chk-attr-p')"> P</label>
-          <label class="checkbox-label"><input type="checkbox" id="chk-attr-f" value="F" onchange="selectAttribute('chk-attr-f')"> F</label>
-        </div>
-      </div>
-      
-      <!-- 来店区分 -->
-      <div class="cust-visit-wrap">
-        <div class="first-visit-inline">
-          <label class="checkbox-label" style="flex: 0 0 auto; min-width: auto; padding: 10px 14px;">
-            <input type="checkbox" id="chk-visit-first" value="初来" onchange="toggleVisit('first')"> 初来
-          </label>
-          <div id="first-visit-detail-wrap" style="display: none; flex: 1;">
-            <select id="sel-first-detail" class="form-control" onchange="calculate()">
-              <option value="口コミ新規">口コミ新規</option>
-              <option value="ヘブン新規">ヘブン新規</option>
-              <option value="G店新規">G店新規</option>
-              <option value="飛び込み新規">飛び込み新規</option>
-              <option value="マンステ新規">マンステ新規</option>
-              <option value="ぴゅあらば新規">ぴゅあらば新規</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="flex: 0 0 auto;">
-          <label class="checkbox-label" style="padding: 10px 14px;">
-            <input type="checkbox" id="chk-visit-repeat" value="再来" onchange="toggleVisit('repeat')"> 再来
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- 予約確認・一覧エリア（基本閉じる） -->
-    <div style="margin-top: 15px; border-top: 1px solid #334155; padding-top: 10px;">
-      <div class="res-toggle-header" onclick="toggleReservationList()">
-        <span><span id="res-arrow">▼</span> 予約リスト（タップで開閉）</span>
-        <span id="res-count" style="font-size: 12px; color: #fbbf24;">0件</span>
-      </div>
-      <div id="reservation-list" class="reservation-list">
-        <div style="font-size: 12px; color: #64748b; text-align: center; padding: 10px 0;">登録済みの予約はありません</div>
-      </div>
+    <div id="reservation-list" class="reservation-list">
+      <div style="font-size: 12px; color: #64748b; text-align: center; padding: 10px 0;">登録済みの予約はありません</div>
     </div>
   </div>
 
   <!-- 1-2. 指名キャスト選択 -->
   <div class="section" id="cast-selection-section" style="display: none;">
     <div class="section-title">1-2. 指名キャスト選択</div>
+    
+    <!-- ランク別切替タブ -->
+    <div class="cast-tab-group">
+      <button type="button" id="tab-btn-VIPレディ" class="tab-btn active" onclick="switchCastCategory('VIPレディ')">VIPレディ</button>
+      <button type="button" id="tab-btn-プレミアレディ" class="tab-btn" onclick="switchCastCategory('プレミアレディ')">プレミアレディ</button>
+      <button type="button" id="tab-btn-ロイヤルレディ" class="tab-btn" onclick="switchCastCategory('ロイヤルレディ')">ロイヤルレディ</button>
+      <button type="button" id="tab-btn-その他" class="tab-btn" onclick="switchCastCategory('その他')">その他</button>
+    </div>
+
     <div style="margin-bottom: 10px;">
       <input type="text" id="cast-search-input" class="form-control" placeholder="キャスト名を検索..." oninput="filterCastList()">
     </div>
@@ -187,7 +149,7 @@
     </div>
 
     <div id="advance-detail-container" style="display: none;">
-      <div class="group-box">
+      <div class="group-box" id="adv-box-g1">
         <div class="group-members"><strong>【グループ1 対象メンバー】</strong><br>あやみ、さな、まい</div>
         <div class="btn-group">
           <button type="button" id="btn-adv-g1-early" class="btn adv-sub-btn" onclick="clickAdvanceSub('g1-early', 5000)">
@@ -201,7 +163,7 @@
         </div>
       </div>
 
-      <div class="group-box">
+      <div class="group-box" id="adv-box-g2">
         <div class="group-members"><strong>【グループ2 対象メンバー】</strong><br>あいか、あおい、あこ、あすな、あまね、いろは、ういか、えみり、きほ、くみ、こころ、さくら、しおり、そら、なぎさ、ひめか、まこと、まち、まどか、まり、めぐみ、ゆい、ゆう、ゆき、ゆり、ゆりあ、らん、りえ、りく、りこ、りょうか、るあ、るか、れみ</div>
         <div class="btn-group">
           <button type="button" id="btn-adv-g2-early" class="btn adv-sub-btn" onclick="clickAdvanceSub('g2-early', 3000)">
@@ -215,8 +177,8 @@
         </div>
       </div>
 
-      <div class="group-box" style="margin-bottom:0;">
-        <div class="group-members"><strong>【その他】</strong></div>
+      <div class="group-box" id="adv-box-other" style="margin-bottom:0;">
+        <div class="group-members"><strong>【その他対象者】</strong></div>
         <div class="btn-group">
           <button type="button" id="btn-adv-other" class="btn adv-sub-btn" onclick="clickAdvanceSub('other', -2000)">
             <span class="text-green">14日前〜1日前</span>
@@ -238,9 +200,66 @@
     </div>
   </div>
 
-  <!-- 5. 各種割引 -->
+  <!-- 5. お客様情報（コース時間の真下） -->
+  <div class="section" id="customer-info-section">
+    <div class="section-title">
+      <span>5. お客様情報</span>
+      <button type="button" class="btn-secondary" onclick="resetForm()">フォームをクリア（新規作成）</button>
+    </div>
+    <div class="cust-info-container">
+      <div class="cust-row-top">
+        <!-- 手入力テキスト ＆ 8時〜23時の選択ボタン -->
+        <div class="cust-time-wrap">
+          <input type="text" id="cust-time" class="form-control" placeholder="時間 (例: 13:00 / 1300)" oninput="formatAndCalculateTime()">
+          <div class="quick-time-group" id="quick-time-container">
+            <!-- JavaScriptで8時〜23時のボタンを自動挿入 -->
+          </div>
+        </div>
+        
+        <!-- 名前入力欄 -->
+        <div class="cust-name-wrap" id="cust-name-box" style="display: none;">
+          <input type="text" id="cust-name" class="form-control" placeholder="お客様のお名前" oninput="calculate()">
+        </div>
+        
+        <!-- 属性 -->
+        <div class="cust-attr-wrap">
+          <label class="checkbox-label"><input type="checkbox" id="chk-attr-jun" value="純" onchange="selectAttribute('chk-attr-jun')"> 純</label>
+          <label class="checkbox-label"><input type="checkbox" id="chk-attr-n" value="Ｎ" onchange="selectAttribute('chk-attr-n')"> Ｎ</label>
+          <label class="checkbox-label"><input type="checkbox" id="chk-attr-p" value="P" onchange="selectAttribute('chk-attr-p')"> P</label>
+          <label class="checkbox-label"><input type="checkbox" id="chk-attr-f" value="F" onchange="selectAttribute('chk-attr-f')"> F</label>
+        </div>
+      </div>
+      
+      <!-- 来店区分 -->
+      <div class="cust-visit-wrap">
+        <div class="first-visit-inline">
+          <label class="checkbox-label" style="flex: 0 0 auto; min-width: auto; padding: 10px 14px;">
+            <input type="checkbox" id="chk-visit-first" value="初来" onchange="toggleVisit('first')"> 初来
+          </label>
+          <div id="first-visit-detail-wrap" style="display: none; flex: 1;">
+            <select id="sel-first-detail" class="form-control" onchange="calculate()">
+              <option value="口コミ新規">口コミ新規</option>
+              <option value="ヘブン新規">ヘブン新規</option>
+              <option value="G店新規">G店新規</option>
+              <option value="飛び込み新規">飛び込み新規</option>
+              <option value="マンステ新規">マンステ新規</option>
+              <option value="ぴゅあらば新規">ぴゅあらば新規</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="flex: 0 0 auto;">
+          <label class="checkbox-label" style="padding: 10px 14px;">
+            <input type="checkbox" id="chk-visit-repeat" value="再来" onchange="toggleVisit('repeat')"> 再来
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. 各種割引 -->
   <div class="section">
-    <div class="section-title">5. 特典・割引適用</div>
+    <div class="section-title">6. 特典・割引適用</div>
     <div class="btn-group" style="flex-direction: column;">
       <div style="display: flex; gap: 10px; align-items: center;">
         <label style="font-size: 13px; font-weight: bold; width: 110px;">サイト提示割引:</label>
@@ -295,32 +314,103 @@
       vip:     { 50: 23000, 75: 0,     100: 48000, 150: 73000 }
     };
 
-    var castList = [
-      { name: 'さな', rank: 'vip', fee: 6000, cat: 'VIPレディ', group: 1 },
+    var rawCastList = [
+      // VIPレディ
       { name: 'あいか', rank: 'vip', fee: 4000, cat: 'VIPレディ', group: 2 },
+      { name: 'あすな', rank: 'vip', fee: 3000, cat: 'VIPレディ', group: 2 },
       { name: 'えみり', rank: 'vip', fee: 4000, cat: 'VIPレディ', group: 2 },
+      { name: 'さな', rank: 'vip', fee: 6000, cat: 'VIPレディ', group: 1 },
+      { name: 'まい', rank: 'vip', fee: 3000, cat: 'VIPレディ', group: 1 },
+      { name: 'りえ', rank: 'vip', fee: 3000, cat: 'VIPレディ', group: 2 },
+      { name: 'りょうか', rank: 'vip', fee: 3000, cat: 'VIPレディ', group: 2 },
 
-      { name: 'ゆう', rank: 'premier', fee: 6000, cat: 'プレミアレディ', group: 2 },
+      // プレミアレディ
+      { name: 'あまね', rank: 'premier', fee: 4000, cat: 'プレミアレディ', group: 2 },
       { name: 'ういか', rank: 'premier', fee: 5000, cat: 'プレミアレディ', group: 2 },
       { name: 'なぎさ', rank: 'premier', fee: 5000, cat: 'プレミアレディ', group: 2 },
-      { name: 'あまね', rank: 'premier', fee: 4000, cat: 'プレミアレディ', group: 2 },
       { name: 'まち', rank: 'premier', fee: 4000, cat: 'プレミアレディ', group: 2 },
+      { name: 'まどか', rank: 'premier', fee: 3000, cat: 'プレミアレディ', group: 2 },
+      { name: 'ゆう', rank: 'premier', fee: 6000, cat: 'プレミアレディ', group: 2 },
+      { name: 'ゆり', rank: 'premier', fee: 3000, cat: 'プレミアレディ', group: 2 },
 
-      { name: 'くみ', rank: 'royal', fee: 5000, cat: 'ロイヤルレディ', group: 2 },
+      // ロイヤルレディ
+      { name: 'あかり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'あげは', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'あおい', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'あやの', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'あやみ', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 1 },
+      { name: 'あん', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'あすか', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'いちか', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'えれな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'かなで', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'かれん', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'きほ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'くみ', rank: 'royal', fee: 5000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'くらん', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'くれは', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'ここ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'ことね', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'さくら', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'さくらこ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'じゅり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'しずく', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'せいな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'せいら', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'なな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'なつき', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'ひな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'ひめか', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'ふうか', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'ベル', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'まこと', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'ましろ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'まり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'まりあ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'みう', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'みか', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'みずき', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'みなみ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'みらい', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'みれい', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'みほ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'めい', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'めぐみ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'よう', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'ゆきな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'ゆな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'ゆん', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'ゆりあ', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'らら', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'らん', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
       { name: 'りく', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
       { name: 'りこ', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'りな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'りの', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'りり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'りん', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'りつ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'るあ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'れおん', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'れな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'れみ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
+      { name: 'わかな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
 
+      // その他
       { name: 'その他', rank: '', fee: 3000, cat: 'その他', group: 0 }
     ];
+
+    var castList = rawCastList.sort(function(a, b) {
+      if (a.cat !== b.cat) return 0;
+      if (a.name === 'その他') return 1;
+      if (b.name === 'その他') return -1;
+      return a.name.localeCompare(b.name, 'ja');
+    });
 
     var isNomination = false;
     var selectedCastIndex = -1;
     var currentRank = 'royal';
+    var activeCategory = 'VIPレディ';
     
     var advanceType = 'none';
     var advanceKey = '';
@@ -330,7 +420,54 @@
 
     var reservations = [];
     var loadedReservationId = null;
-    var isListOpen = false; // 初期状態は閉じた状態
+    var isListOpen = false;
+
+    // 8時〜23時のクイックボタンを生成
+    function initQuickTimeButtons() {
+      var container = document.getElementById('quick-time-container');
+      container.innerHTML = '';
+      for (var h = 8; h <= 23; h++) {
+        var hourStr = (h < 10 ? '0' + h : h) + ':00';
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'quick-time-btn';
+        btn.innerText = hourStr;
+        btn.setAttribute('onclick', "setQuickTime('" + hourStr + "')");
+        container.appendChild(btn);
+      }
+    }
+
+    function setQuickTime(val) {
+      document.getElementById('cust-time').value = val;
+      calculate();
+    }
+
+    function formatAndCalculateTime() {
+      var elem = document.getElementById('cust-time');
+      var val = elem.value.replace(/[^0-9]/g, '');
+      if (val.length === 3) {
+        elem.value = '0' + val.substring(0, 1) + ':' + val.substring(1);
+      } else if (val.length === 4) {
+        elem.value = val.substring(0, 2) + ':' + val.substring(2);
+      }
+      calculate();
+    }
+
+    function switchCastCategory(cat) {
+      activeCategory = cat;
+      var categories = ['VIPレディ', 'プレミアレディ', 'ロイヤルレディ', 'その他'];
+      for (var i = 0; i < categories.length; i++) {
+        var btn = document.getElementById('tab-btn-' + categories[i]);
+        if (btn) {
+          if (categories[i] === cat) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        }
+      }
+      initCastButtons();
+    }
 
     function toggleReservationList() {
       isListOpen = !isListOpen;
@@ -340,7 +477,6 @@
     function updateListVisibility() {
       var listElem = document.getElementById('reservation-list');
       var arrowElem = document.getElementById('res-arrow');
-      
       if (isListOpen) {
         listElem.style.display = 'flex';
         arrowElem.innerText = '▲';
@@ -354,79 +490,27 @@
       var container = document.getElementById('cast-btn-container');
       container.innerHTML = '';
       
-      var categories = ['VIPレディ', 'プレミアレディ', 'ロイヤルレディ', 'その他'];
       var keyword = document.getElementById('cast-search-input') ? document.getElementById('cast-search-input').value.trim().toLowerCase() : '';
-      
-      var anyCastMatch = false;
-      if (keyword !== '') {
-        for (var k = 0; k < castList.length; k++) {
-          if (castList[k].cat !== 'その他' && castList[k].name.toLowerCase().indexOf(keyword) !== -1) {
-            anyCastMatch = true;
-            break;
-          }
-        }
-      }
 
-      var otherIndex = -1;
-      for (var o = 0; o < castList.length; o++) {
-        if (castList[o].name === 'その他') {
-          otherIndex = o;
-          break;
-        }
-      }
-
-      if (keyword !== '' && !anyCastMatch && otherIndex !== -1 && isNomination) {
-        if (selectedCastIndex !== otherIndex) {
-          clickCast(otherIndex);
-        }
-      }
-
-      for (var c = 0; c < categories.length; c++) {
-        var catName = categories[c];
+      for (var i = 0; i < castList.length; i++) {
+        var item = castList[i];
         
-        var catTitle = document.createElement('div');
-        catTitle.className = 'cast-cat-title';
-        catTitle.innerText = catName;
+        if (keyword === '' && item.cat !== activeCategory) {
+          continue;
+        }
 
-        var catHasVisibleCast = false;
+        if (keyword !== '' && item.name.toLowerCase().indexOf(keyword) === -1 && item.cat !== 'その他') {
+          continue;
+        }
+
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = (i === selectedCastIndex) ? 'btn cast-btn active' : 'btn cast-btn';
+        btn.id = 'cast-btn-' + i;
+        btn.innerHTML = item.name + '<span class="sub-text">+' + item.fee.toLocaleString() + '円</span>';
+        btn.setAttribute('onclick', 'clickCast(' + i + ')');
         
-        var tempGroup = document.createElement('div');
-        tempGroup.style.display = 'contents';
-
-        for (var i = 0; i < castList.length; i++) {
-          var item = castList[i];
-          if (item.cat === catName) {
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = (i === selectedCastIndex) ? 'btn cast-btn active' : 'btn cast-btn';
-            btn.id = 'cast-btn-' + i;
-            btn.innerHTML = item.name + '<span class="sub-text">+' + item.fee.toLocaleString() + '円</span>';
-            btn.setAttribute('onclick', 'clickCast(' + i + ')');
-            
-            if (keyword !== '') {
-              if (item.cat === 'その他') {
-                if (!anyCastMatch) {
-                  catHasVisibleCast = true;
-                } else {
-                  btn.style.display = 'none';
-                }
-              } else if (item.name.toLowerCase().indexOf(keyword) === -1) {
-                btn.style.display = 'none';
-              } else {
-                catHasVisibleCast = true;
-              }
-            } else {
-              catHasVisibleCast = true;
-            }
-            
-            tempGroup.appendChild(btn);
-          }
-        }
-
-        if (catHasVisibleCast) {
-          container.appendChild(catTitle);
-          container.appendChild(tempGroup);
-        }
+        container.appendChild(btn);
       }
     }
 
@@ -437,7 +521,6 @@
     function selectAttribute(selectedId) {
       var attrIds = ['chk-attr-jun', 'chk-attr-n', 'chk-attr-p', 'chk-attr-f'];
       var target = document.getElementById(selectedId);
-      
       if (target.checked) {
         for (var i = 0; i < attrIds.length; i++) {
           if (attrIds[i] !== selectedId) {
@@ -503,6 +586,7 @@
       }
 
       if (val && selectedCastIndex === -1) {
+        switchCastCategory('VIPレディ');
         clickCast(0);
       } else {
         if (!val) {
@@ -517,18 +601,13 @@
 
     function clickCast(idx) {
       selectedCastIndex = idx;
-      var btns = document.querySelectorAll('.cast-btn');
-      for (var i = 0; i < btns.length; i++) {
-        var btnId = btns[i].id;
-        if (btnId === ('cast-btn-' + idx)) {
-          btns[i].className = 'btn cast-btn active';
-        } else {
-          btns[i].className = 'btn cast-btn';
-        }
-      }
+      initCastButtons();
+      
       var c = castList[idx];
-      updateRankState(c ? c.rank : null);
-      updateAdvanceGroupState(c ? c.group : null);
+      if (c) {
+        updateRankState(c.rank);
+        updateAdvanceGroupState(c.group);
+      }
       calculate();
     }
 
@@ -574,27 +653,21 @@
         btnG2Early.disabled = true;
         btnG2Mid.disabled   = true;
         btnOther.disabled   = true;
-        if (advanceType === 'early' && advanceKey.indexOf('g1') === -1) {
-          clickAdvanceSub('g1-early', 5000);
-        }
+        clickAdvanceSub('g1-early', 5000);
       } else if (groupNum === 2) {
         btnG1Early.disabled = true;
         btnG1Mid.disabled   = true;
         btnG2Early.disabled = false;
         btnG2Mid.disabled   = false;
         btnOther.disabled   = true;
-        if (advanceType === 'early' && advanceKey.indexOf('g2') === -1) {
-          clickAdvanceSub('g2-early', 3000);
-        }
+        clickAdvanceSub('g2-early', 3000);
       } else {
-        btnG1Early.disabled = false;
-        btnG1Mid.disabled   = false;
-        btnG2Early.disabled = false;
-        btnG2Mid.disabled   = false;
+        btnG1Early.disabled = true;
+        btnG1Mid.disabled   = true;
+        btnG2Early.disabled = true;
+        btnG2Mid.disabled   = true;
         btnOther.disabled   = false;
-        if (advanceType === 'early' && !advanceKey) {
-          clickAdvanceSub('g1-early', 5000);
-        }
+        clickAdvanceSub('other', -2000);
       }
     }
 
@@ -622,14 +695,10 @@
         advanceFee = 1000;
       } else if (type === 'early') {
         detailContainer.style.display = 'block';
-        if (!advanceKey) {
-          if (isNomination && selectedCastIndex >= 0) {
-            updateAdvanceGroupState(castList[selectedCastIndex].group);
-          } else {
-            updateAdvanceGroupState(null);
-          }
+        if (isNomination && selectedCastIndex >= 0) {
+          updateAdvanceGroupState(castList[selectedCastIndex].group);
         } else {
-          clickAdvanceSub(advanceKey, advanceFee);
+          updateAdvanceGroupState(0);
         }
       }
       calculate();
@@ -853,6 +922,10 @@
 
       clickNomination(res.isNomination);
       if (res.isNomination && res.selectedCastIndex >= 0) {
+        var targetCast = castList[res.selectedCastIndex];
+        if (targetCast) {
+          switchCastCategory(targetCast.cat);
+        }
         clickCast(res.selectedCastIndex);
       } else {
         currentRank = res.currentRank;
@@ -922,7 +995,8 @@
 
     // 初期化実行
     window.onload = function() {
-      initCastButtons();
+      initQuickTimeButtons();
+      switchCastCategory('VIPレディ');
       clickNomination(false);
       calculate();
       updateListVisibility();
