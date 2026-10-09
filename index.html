@@ -208,20 +208,15 @@
     </div>
     <div class="cust-info-container">
       <div class="cust-row-top">
-        <!-- 手入力テキスト ＆ 8時〜23時の選択ボタン -->
         <div class="cust-time-wrap">
           <input type="text" id="cust-time" class="form-control" placeholder="時間 (例: 13:00 / 1300)" oninput="formatAndCalculateTime()">
-          <div class="quick-time-group" id="quick-time-container">
-            <!-- JavaScriptで8時〜23時のボタンを自動挿入 -->
-          </div>
+          <div class="quick-time-group" id="quick-time-container"></div>
         </div>
         
-        <!-- 名前入力欄 -->
         <div class="cust-name-wrap" id="cust-name-box" style="display: none;">
           <input type="text" id="cust-name" class="form-control" placeholder="お客様のお名前" oninput="calculate()">
         </div>
         
-        <!-- 属性 -->
         <div class="cust-attr-wrap">
           <label class="checkbox-label"><input type="checkbox" id="chk-attr-jun" value="純" onchange="selectAttribute('chk-attr-jun')"> 純</label>
           <label class="checkbox-label"><input type="checkbox" id="chk-attr-n" value="Ｎ" onchange="selectAttribute('chk-attr-n')"> Ｎ</label>
@@ -230,7 +225,6 @@
         </div>
       </div>
       
-      <!-- 来店区分 -->
       <div class="cust-visit-wrap">
         <div class="first-visit-inline">
           <label class="checkbox-label" style="flex: 0 0 auto; min-width: auto; padding: 10px 14px;">
@@ -273,7 +267,7 @@
       </div>
       <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
         <label class="checkbox-label" style="justify-content: flex-start; padding-left: 15px;">
-          <input type="checkbox" id="chk-review" onchange="calculate()"> 口コミ割引 (-1,000円)
+          <input type="checkbox" id="chk-review" onchange="calculate()"> 口口コミ割引 (-1,000円)
         </label>
       </div>
     </div>
@@ -353,6 +347,7 @@
       { name: 'ことね', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'さくら', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
       { name: 'さくらこ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'しおり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 }, // 追加：しおり (+3,000円)
       { name: 'じゅり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'しずく', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'せいな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
@@ -422,7 +417,6 @@
     var loadedReservationId = null;
     var isListOpen = false;
 
-    // 8時〜23時のクイックボタンを生成
     function initQuickTimeButtons() {
       var container = document.getElementById('quick-time-container');
       container.innerHTML = '';
