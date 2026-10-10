@@ -36,11 +36,11 @@
     .checkbox-label { display: flex; align-items: center; background: #334155; padding: 10px 8px; border-radius: 8px; border: 2px solid #475569; cursor: pointer; flex: 1; min-width: 60px; font-size: 13px; font-weight: bold; justify-content: center; }
     .checkbox-label input { width: 16px; height: 16px; margin-right: 4px; }
     
-    .cust-info-container { display: flex; flex-direction: column; gap: 10px; }
-    .cust-row-top { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; }
-    .cust-time-wrap { flex: 1; min-width: 140px; }
-    .cust-name-wrap { flex: 2; min-width: 180px; }
-    .cust-attr-wrap { flex: 3; display: flex; gap: 6px; min-width: 240px; flex-wrap: wrap; }
+    .cust-info-container { display: flex; flex-direction: column; gap: 12px; }
+    .cust-item { width: 100%; }
+    .cust-label-title { font-size: 12px; font-weight: bold; color: #fbbf24; margin-bottom: 4px; }
+    
+    .cust-attr-wrap { display: flex; gap: 6px; width: 100%; flex-wrap: wrap; }
     .cust-visit-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
     .first-visit-inline { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 220px; }
@@ -200,23 +200,17 @@
     </div>
   </div>
 
-  <!-- 5. お客様情報（コース時間の真下） -->
+  <!-- 5. お客様情報 -->
   <div class="section" id="customer-info-section">
     <div class="section-title">
       <span>5. お客様情報</span>
       <button type="button" class="btn-secondary" onclick="resetForm()">フォームをクリア（新規作成）</button>
     </div>
     <div class="cust-info-container">
-      <div class="cust-row-top">
-        <div class="cust-time-wrap">
-          <input type="text" id="cust-time" class="form-control" placeholder="時間 (例: 13:00 / 1300)" oninput="formatAndCalculateTime()">
-          <div class="quick-time-group" id="quick-time-container"></div>
-        </div>
-        
-        <div class="cust-name-wrap" id="cust-name-box" style="display: none;">
-          <input type="text" id="cust-name" class="form-control" placeholder="お客様のお名前" oninput="calculate()">
-        </div>
-        
+      
+      <!-- 1番目：属性選択 -->
+      <div class="cust-item">
+        <div class="cust-label-title">属性選択</div>
         <div class="cust-attr-wrap">
           <label class="checkbox-label"><input type="checkbox" id="chk-attr-jun" value="純" onchange="selectAttribute('chk-attr-jun')"> 純</label>
           <label class="checkbox-label"><input type="checkbox" id="chk-attr-n" value="Ｎ" onchange="selectAttribute('chk-attr-n')"> Ｎ</label>
@@ -224,30 +218,50 @@
           <label class="checkbox-label"><input type="checkbox" id="chk-attr-f" value="F" onchange="selectAttribute('chk-attr-f')"> F</label>
         </div>
       </div>
-      
-      <div class="cust-visit-wrap">
-        <div class="first-visit-inline">
-          <label class="checkbox-label" style="flex: 0 0 auto; min-width: auto; padding: 10px 14px;">
-            <input type="checkbox" id="chk-visit-first" value="初来" onchange="toggleVisit('first')"> 初来
-          </label>
-          <div id="first-visit-detail-wrap" style="display: none; flex: 1;">
-            <select id="sel-first-detail" class="form-control" onchange="calculate()">
-              <option value="口コミ新規">口コミ新規</option>
-              <option value="ヘブン新規">ヘブン新規</option>
-              <option value="G店新規">G店新規</option>
-              <option value="飛び込み新規">飛び込み新規</option>
-              <option value="マンステ新規">マンステ新規</option>
-              <option value="ぴゅあらば新規">ぴゅあらば新規</option>
-            </select>
+
+      <!-- 2番目：お名前入力 -->
+      <div class="cust-item" id="cust-name-box" style="display: none;">
+        <div class="cust-label-title">お客様のお名前</div>
+        <input type="text" id="cust-name" class="form-control" placeholder="お客様のお名前" oninput="calculate()">
+      </div>
+
+      <!-- 3番目：来店区分 -->
+      <div class="cust-item">
+        <div class="cust-label-title">来店区分</div>
+        <div class="cust-visit-wrap">
+          <div class="first-visit-inline">
+            <label class="checkbox-label" style="flex: 0 0 auto; min-width: auto; padding: 10px 14px;">
+              <input type="checkbox" id="chk-visit-first" value="初来" onchange="toggleVisit('first')"> 初来
+            </label>
+            <div id="first-visit-detail-wrap" style="display: none; flex: 1;">
+              <select id="sel-first-detail" class="form-control" onchange="calculate()">
+                <option value="口コミ新規">口コミ新規</option>
+                <option value="ヘブン新規">ヘブン新規</option>
+                <option value="G店新規">G店新規</option>
+                <option value="飛び込み新規">飛び込み新規</option>
+                <option value="マンステ新規">マンステ新規</option>
+                <option value="ぴゅあらば新規">ぴゅあらば新規</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="flex: 0 0 auto;">
+            <label class="checkbox-label" style="padding: 10px 14px;">
+              <input type="checkbox" id="chk-visit-repeat" value="再来" onchange="toggleVisit('repeat')"> 再来
+            </label>
           </div>
         </div>
+      </div>
 
-        <div style="flex: 0 0 auto;">
-          <label class="checkbox-label" style="padding: 10px 14px;">
-            <input type="checkbox" id="chk-visit-repeat" value="再来" onchange="toggleVisit('repeat')"> 再来
-          </label>
+      <!-- 4番目：来店時間 -->
+      <div class="cust-item">
+        <div class="cust-label-title">来店時間</div>
+        <div class="cust-time-wrap">
+          <input type="text" id="cust-time" class="form-control" placeholder="時間 (例: 13:00 / 1300)" oninput="formatAndCalculateTime()">
+          <div class="quick-time-group" id="quick-time-container"></div>
         </div>
       </div>
+
     </div>
   </div>
 
@@ -267,7 +281,7 @@
       </div>
       <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
         <label class="checkbox-label" style="justify-content: flex-start; padding-left: 15px;">
-          <input type="checkbox" id="chk-review" onchange="calculate()"> 口口コミ割引 (-1,000円)
+          <input type="checkbox" id="chk-review" onchange="calculate()"> 口コミ割引 (-1,000円)
         </label>
       </div>
     </div>
@@ -347,7 +361,7 @@
       { name: 'ことね', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'さくら', rank: 'royal', fee: 4000, cat: 'ロイヤルレディ', group: 2 },
       { name: 'さくらこ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
-      { name: 'しおり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 }, // 追加：しおり (+3,000円)
+      { name: 'しおり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
       { name: 'じゅり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'しずく', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'せいな', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
@@ -362,6 +376,7 @@
       { name: 'ましろ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'まり', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 2 },
       { name: 'まりあ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
+      { name: 'まりこ', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 }, // 追加：まりこ (+3,000円)
       { name: 'みう', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'みか', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
       { name: 'みずき', rank: 'royal', fee: 3000, cat: 'ロイヤルレディ', group: 0 },
@@ -416,6 +431,25 @@
     var reservations = [];
     var loadedReservationId = null;
     var isListOpen = false;
+
+    function saveStorage() {
+      try {
+        localStorage.setItem('calc_system_reservations', JSON.stringify(reservations));
+      } catch (e) {
+        console.error('保存に失敗しました:', e);
+      }
+    }
+
+    function loadStorage() {
+      try {
+        var data = localStorage.getItem('calc_system_reservations');
+        if (data) {
+          reservations = JSON.parse(data);
+        }
+      } catch (e) {
+        console.error('読み込みに失敗しました:', e);
+      }
+    }
 
     function initQuickTimeButtons() {
       var container = document.getElementById('quick-time-container');
@@ -870,6 +904,7 @@
 
       reservations.sort(function(a, b) { return a.time.localeCompare(b.time); });
 
+      saveStorage();
       renderReservationList();
       resetForm();
       alert(isUpdate ? '予約内容を更新しました' : '新規予約を登録しました');
@@ -956,6 +991,7 @@
     function completePayment() {
       if (loadedReservationId !== null) {
         reservations = reservations.filter(function(r) { return r.id !== loadedReservationId; });
+        saveStorage();
         alert('会計を確定し、予約リストから削除しました');
       } else {
         alert('会計を確定しました');
@@ -989,9 +1025,11 @@
 
     // 初期化実行
     window.onload = function() {
+      loadStorage();
       initQuickTimeButtons();
       switchCastCategory('VIPレディ');
       clickNomination(false);
+      renderReservationList();
       calculate();
       updateListVisibility();
     };
